@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mohammed Raees - Portfolio</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #ffffff;
+            color: #000000;
+            font-family: "Inter", Arial, sans-serif;
+        }
+
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle at 50% 50%, #0e0d0d00, transparent 10%),
+                radial-gradient(circle at 50% 50%, #ffffffb4, transparent 10%);
+            filter: blur(120px);
+            animation: moveGlow 12s infinite alternate ease-in-out;
+            z-index: -1;
+        }
+
+        @keyframes moveGlow {
+            0% {
+                transform: translate(-6%, -6%) scale(1);
+            }
+
+            100% {
+                transform: translate(6%, 6%) scale(1.1);
+            }
+        }
+
+
+        header {
+            padding: 1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(90deg, #ffffffdd, #dfd8d82f, #ffffff7e);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dock-style navigation */
+        nav.dock {
+            display: flex;
+            gap: 18px;
+            align-items: flex-end;
+            padding: 12px 8px;
+            background: transparent;
+        }
+
+        nav.dock a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            color: #000000;
+            font-size: 15px;
+            text-decoration: none;
+            border-radius: 8px;
+            transform-origin: bottom center;
+            transition: transform 220ms cubic-bezier(.2, .9, .2, 1), color 180ms, background 180ms;
+            will-change: transform;
+            cursor: pointer;
+        }
+
+
+        nav.dock a.active {
+            transform: scale(1.9);
+            color: #000000;
+            background: #000000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        nav.dock a:hover:not(.active) {
+            transform: scale(1.2);
+            color: #000000;
+        }
+
+        /* Small responsive tweak */
+        @media (max-width:600px) {
+            nav.dock {
+                gap: 10px;
+                padding: 8px
+            }
+
+            nav.dock a {
+                padding: 8px 10px;
+                font-size: 14px
+            }
+
+            nav.dock a.active {
+                transform: scale(1.5);
+            }
+        }
+
+        .hero {
+            padding: 155px 60px 60px;
+            border-bottom: 0.1px solid rgba(0, 0, 0, 0.514);
+        }
+
+        .hero h1 {
+            background: linear-gradient(90deg, #000000b2, #0000009f, #47444477);
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 72px;
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            max-width: 750px;
+            margin-bottom: 12px;
+        }
+
+        .hero h2 {
+            background: linear-gradient(90deg, #000000b2, #053ef8, #060464);
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 50px;
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            max-width: 750px;
+        }
+
+        .hero p {
+            margin-top: 28px;
+            max-width: 520px;
+            opacity: 0.7;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .hero button {
+            margin-top: 32px;
+            padding: 14px 32px;
+            color: #000000;
+            background: #4442420e;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .hero button:hover {
+            background: #00000054;
+            color: #000000;
+        }
+
+
+        section {
+            padding: 100px 60px;
+            max-width: 1300px;
+            margin: auto;
+            margin: top 150px;
+        }
+
+        .title {
+            background: linear-gradient(90deg, #000000b2, #0000009f, #47444477);
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 35px;
+            letter-spacing: -1px;
+            text-align: center;
+
+        }
+
+        .content-section p {
+            margin: auto;
+            text-align: center;
+        }
+
+        .content-section {
+            margin: auto;
+            text-align: center;
+        }
+
+        section p {
+            max-width: 650px;
+            opacity: 0.75;
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        #about button {
+            margin-top: 25px;
+            padding: 12px 28px;
+            border-radius: 6px;
+            border: 1px solid black;
+            color: #000000;
+            background: #4442420e;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        #about button:hover {
+            color: #000000;
+            background: #00000054;
+        }
+
+        .projects {
+            display: grid;
+            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            margin-top: 50px;
+        }
+
+        .card {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 14px;
+            border: 2px solid transparent;
+            transition: 0.25s;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border: 2px solid transparent;
+            background: linear-gradient(#f9f9f9, #f9f9f9) padding-box,
+                linear-gradient(135deg, #031b69, #5c5ad4, #031b69) border-box;
+            box-shadow: 0 8px 20px rgba(3, 27, 105, 0.1);
+        }
+
+        .card h3 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            opacity: 0.65;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .card button {
+            margin-top: 18px;
+            padding: 10px 22px;
+            border-radius: 6px;
+            border: 1px solid black;
+            color: #000000;
+            background: #4442420e;
+            cursor: pointer;
+        }
+
+        .card button:hover {
+            color: #000000;
+            background: #00000054;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.5;
+        }
+
+        /* Learn More Button */
+
+
+        /* SKILLS */
+        #skills {
+            padding: 80px 60px;
+            border: #020101;
+        }
+
+        #skills .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        #skills .skill-card {
+            background: #f9f9f9;
+            padding: 22px;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            text-align: center;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        #skills .skill-card:hover {
+            transform: translateY(-4px);
+            border: 2px solid transparent;
+            background: linear-gradient(#f9f9f9, #f9f9f9) padding-box,
+                linear-gradient(135deg, #031b69, #5c5ad4, #031b69) border-box;
+            box-shadow: 0 8px 20px rgba(3, 27, 105, 0.1);
+        }
+
+        #skills .skill-card h3 {
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        #skills .skill-card p {
+            font-size: 13px;
+            color: #000000;
+        }
+
+        #skills .progress-bar {
+            height: 4px;
+            background: #000000;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        #skills .progress {
+            height: 90%;
+            border-radius: 4px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="animated-bg"></div>
+
+    <header>
+        <nav class="dock">
+            <a href="about.html">About</a>
+            <a href="games.html">Projects</a>
+            <a href="#skills">Skills</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Mohammed Raees</h1>
+        <h2>Full Stack Developer</h2>
+        <p>I craft simple and clean projects while learning Python, JavaScript, and AI.
+            I focus on growing step by step, exploring new technologies, and building real-world applications.</p>
+        <button onclick="window.location.href='#projects'">View Projects</button>
+    </section>
+
+    <!-- ABOUT ME -->
+    <section id="about">
+        <h2 class="title">About Me</h2>
+        <div class="content-section">
+            <p>
+                Hi, I'm currently advancing my skills in Full-Stack Development. I'm passionate about building
+                meaningful projects, exploring emerging technologies, and continuously improving through hands-on
+                experience.
+            </p>
+            <button onclick="window.location.href='about.html'">Learn More</button>
+        </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section id="projects">
+        <h2 class="title">Projects</h2>
+        <div class="projects">
+            <div class="card">
+                <h3>My Learning Projects</h3>
+                <p>A collection of simple projects I built while learning JavaScript.</p>
+                <a href="games.html"><button>Learn more</button></a>
+            </div>
+
+            <div class="card">
+                <h3>AI Chatbot</h3>
+                <p>A learning project — coming soon!</p>
+                <button disabled>Coming Soon</button>
+            </div>
+
+            <div class="card">
+                <h3>Portfolio v2</h3>
+                <p>Advanced animations + React.</p>
+                <button disabled>Coming Soon</button>
+            </div>
+
+            <div class="card">
+                <h3>Weather App</h3>
+                <p>Real-time API project — coming soon.</p>
+                <button disabled>Coming Soon</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section id="skills">
+        <h2 class="title" style="text-align:center; margin-bottom:40px;">My Skills & Interests</h2>
+        <div class="skills-grid">
+
+            <!-- Front-End -->
+            <div class="skill-card">
+                <h3>Front-End</h3>
+                <div class="progress-bar">
+                    <div class="progress"
+                        style="width:60%; background: linear-gradient(135deg, #031b69, #031b69,#5c5ad4);"></div>
+                </div>
+                <p>HTML, CSS, JavaScript, React</p>
+            </div>
+
+            <!-- Back-End -->
+            <div class="skill-card">
+                <h3>Back-End</h3>
+                <div class="progress-bar">
+                    <div class="progress"
+                        style="width:50%; background: linear-gradient(135deg, #690303, #690303,#d45a5a);"></div>
+                </div>
+                <p>Node.js, Express, MongoDB</p>
+            </div>
+
+            <!-- AI / ML -->
+            <div class="skill-card">
+                <h3>AI / ML</h3>
+                <div class="progress-bar">
+                    <div class="progress"
+                        style="width:30%; background: linear-gradient(135deg, #07ff07, #426932,#bbeba4);"></div>
+                </div>
+                <p>Python, AI Chatbot Fundamentals, Machine Learning Basics</p>
+            </div>
+
+            <!-- Interests -->
+            <div class="skill-card">
+                <h3>Other Interests</h3>
+                <div class="progress-bar">
+                    <div class="progress"
+                        style="width:70%; background: linear-gradient(135deg, #4e034e, #4e034e,#be43be);"></div>
+                </div>
+                <p>Learning new tech, building mini-projects, exploring APIs</p>
+            </div>
+
+        </div>
+    </section>
+
+    <footer>
+        © 2025 Raees — Developer Portfolio
+    </footer>
+
+    <script>
+        // Handle navigation click animation
+        const navLinks = document.querySelectorAll('nav.dock a');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                // Remove active class from all links
+                navLinks.forEach(l => l.classList.remove('active'));
+
+                // Add active class to clicked link
+                this.classList.add('active');
+
+                // Remove active class after animation (500ms)
+                setTimeout(() => {
+                    this.classList.remove('active');
+                }, 500);
+            });
+        });
+    </script>
+
+</body>
+
+</html>
