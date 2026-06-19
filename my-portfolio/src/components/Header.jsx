@@ -15,23 +15,24 @@ export default function Header({ theme, toggleTheme, page, go }) {
 
   return (
     <header className={"p-hdr" + (stuck ? " stuck" : "")}>
-      <button className="p-logo" onClick={() => go("home")}>
-        Mohammed <em>Raees</em>
-      </button>
+      <div className="p-hdr-left">
+        <div className="p-hdr-profile">
+          <img src="/mohammed raees img.png" alt="Mohammed Raees" className="p-hdr-avatar" />
+          <button className="p-hdr-status" onClick={() => nav("home", "contact")}>
+            <span className="p-status-dot"></span>
+            Available for work
+            <span className="p-status-arrow">▼</span>
+          </button>
+        </div>
+      </div>
 
       <nav className="p-nav">
-        <button className={page === "home"   ? "active" : ""} onClick={() => nav("home", "about")}>About</button>
-        <button className={page === "webdev" ? "active" : ""} onClick={() => go("webdev")}>Web Dev</button>
-        <button className={page === "appdev" ? "active" : ""} onClick={() => go("appdev")}>App Dev</button>
-        <button className={page === "about"  ? "active" : ""} onClick={() => go("about")}>Story</button>
-        <button onClick={() => nav("home", "contact")}>Contact</button>
+        <button className={page === "home"   ? "active" : ""} onClick={() => nav("home", "about")}>Home</button>
+        <button className={page === "about"  ? "active" : ""} onClick={() => go("about")}>About</button>
+        <button onClick={() => nav("home", "projects")}>Projects</button>
       </nav>
 
       <div className="p-hright">
-        <a href="https://github.com/Raeeeesss" target="_blank" rel="noreferrer" className="p-gh">
-          <IconGH />
-          GitHub
-        </a>
         <button className="p-tbtn" onClick={toggleTheme}>
           {theme === "dark" ? "☾" : "☀"}
         </button>
