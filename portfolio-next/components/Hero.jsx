@@ -93,12 +93,11 @@ export default function Hero({ sectionRef }) {
         transition={{ duration: 1.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* Desktop portrait */}
-        <motion.img
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           className="hero-img-desktop"
           src="/mohammed%20raees%20img1.png"
           alt="Mohammed Raees"
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
           style={{
             height: '100%',
             width: 'auto',

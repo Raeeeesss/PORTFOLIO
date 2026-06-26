@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback, createContext, useContext } from "react";
-import { motion, AnimatePresence, useInView, useMotionValue, animate as fmAnimate } from "framer-motion";
+import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useMotionTemplate, animate as fmAnimate } from "framer-motion";
 
 /* Context that carries the cv-entries-wrap ref so child metric
    components can use it as the IntersectionObserver root —
@@ -11,6 +11,7 @@ import gsap from "gsap";
 import Lenis from "lenis";
 import { ArrowRight, Download, Mail, Globe, Smartphone, Layers, Cpu, Zap, TrendingUp, GraduationCap, Code, Rocket, Server, Database, Search, Palette, ChevronDown } from "lucide-react";
 import Hero from "./Hero";
+import DecayCard from "./DecayCard";
 
 /* ── Inline brand icons (not in this build of lucide-react) ── */
 const InstagramIcon = ({ size = 16, strokeWidth = 1.8 }) => (
@@ -335,6 +336,136 @@ function MagneticButton({ href, children, variant = "primary", external = false,
 
 
 
+/* ── CursorRevealImg — spotlight reveal + target crosshair ── */
+function CursorRevealImg({ src, alt }) {
+  const containerRef = useRef(null);
+  const overlayRef   = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const cx = useMotionValue(-999);
+  const cy = useMotionValue(-999);
+  const springCX = useSpring(cx, { stiffness: 220, damping: 24, mass: 0.4 });
+  const springCY = useSpring(cy, { stiffness: 220, damping: 24, mass: 0.4 });
+
+  useEffect(() => {
+    const u1 = springCX.on('change', v => overlayRef.current?.style.setProperty('--cx', `${v}px`));
+    const u2 = springCY.on('change', v => overlayRef.current?.style.setProperty('--cy', `${v}px`));
+    return () => { u1(); u2(); };
+  }, [springCX, springCY]);
+
+  const onMove = useCallback((e) => {
+    const r = containerRef.current.getBoundingClientRect();
+    cx.set(e.clientX - r.left);
+    cy.set(e.clientY - r.top);
+  }, [cx, cy]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ position: 'relative', cursor: 'none', borderRadius: 0, overflow: 'hidden', aspectRatio: '3/4', background: '#0a0a0f' }}
+      onMouseMove={onMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block', filter: 'grayscale(12%) contrast(1.06)' }} />
+
+      {/* Base vignette (always) */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(5,5,10,0.88) 0%, transparent 50%)', pointerEvents: 'none' }} />
+
+      {/* Spotlight overlay */}
+      <div
+        ref={overlayRef}
+        style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'rgba(5,5,10,0.86)',
+          WebkitMaskImage: isHovered ? 'radial-gradient(circle 160px at var(--cx) var(--cy), transparent 0%, rgba(0,0,0,0.92) 68%)' : 'none',
+          maskImage:       isHovered ? 'radial-gradient(circle 160px at var(--cx) var(--cy), transparent 0%, rgba(0,0,0,0.92) 68%)' : 'none',
+          opacity: isHovered ? 1 : 0.55,
+          transition: 'opacity 0.35s ease',
+        }}
+      />
+
+      {/* Target crosshair cursor */}
+      <motion.div style={{ position: 'absolute', pointerEvents: 'none', zIndex: 8, x: springCX, y: springCY, translateX: '-50%', translateY: '-50%', opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s ease' }}>
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+          <circle cx="30" cy="30" r="22" stroke="rgba(255,255,255,0.72)" strokeWidth="1"/>
+          <circle cx="30" cy="30" r="2.5" fill="white" opacity="0.9"/>
+          <line x1="30" y1="2"  x2="30" y2="12" stroke="white" strokeWidth="1.5" opacity="0.72"/>
+          <line x1="30" y1="48" x2="30" y2="58" stroke="white" strokeWidth="1.5" opacity="0.72"/>
+          <line x1="2"  y1="30" x2="12" y2="30" stroke="white" strokeWidth="1.5" opacity="0.72"/>
+          <line x1="48" y1="30" x2="58" y2="30" stroke="white" strokeWidth="1.5" opacity="0.72"/>
+        </svg>
+      </motion.div>
+
+      {/* Caption */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 22px', zIndex: 3 }}>
+        <p style={{ margin: 0, fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)' }}>Kerala, India</p>
+        <p style={{ margin: '5px 0 0', fontSize: '0.86rem', fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Founder · Developer · Operator</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── StatCounter — animated number on scroll ── */
+function StatCounter({ to, suffix = '', delay = 0 }) {
+  const ref = useRef(null);
+  const [val, setVal] = useState(0);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  useEffect(() => {
+    if (!inView) return;
+    const ctrl = fmAnimate(0, to, { duration: 1.8, delay, ease: [0.22, 1, 0.36, 1], onUpdate: v => setVal(Math.round(v)) });
+    return () => ctrl.stop();
+  }, [inView, to, delay]);
+  return <span ref={ref}>{val}{suffix}</span>;
+}
+
+/* ── ActivityBars — monthly code contribution chart ── */
+function ActivityBars() {
+  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+  const data   = [42, 68, 55, 82, 74, 91, 79, 88, 71, 95, 83, 77];
+  const max = Math.max(...data);
+  return (
+    <div>
+      <p style={{ margin: '0 0 12px', fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>Code Activity · 2024</p>
+      <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', height: 52 }}>
+        {data.map((v, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <motion.div
+              initial={{ scaleY: 0 }}
+              whileInView={{ scaleY: 1 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ delay: i * 0.055, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+              style={{ width: '100%', height: `${(v / max) * 40}px`, borderRadius: '3px 3px 0 0', background: 'linear-gradient(to top, #2547FF, #5b7fff)', transformOrigin: 'bottom' }}
+            />
+            <span style={{ fontSize: '0.42rem', color: 'rgba(255,255,255,0.22)', fontFamily: 'monospace', lineHeight: 1 }}>{months[i]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── AboutSkillBar — simple bar without scroll-root context ── */
+function AboutSkillBar({ label, pct, color = '#2547FF', delay = 0 }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+        <span style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.42)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
+        <span style={{ fontSize: '0.6rem', fontWeight: 800, color }}>{pct}%</span>
+      </div>
+      <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 999, overflow: 'hidden' }}>
+        <motion.div
+          initial={{ width: 0 }}
+          whileInView={{ width: `${pct}%` }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 1.2, delay, ease: [0.22, 1, 0.36, 1] }}
+          style={{ height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${color}88, ${color})` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── SkillBar ── */
 function SkillBar({ label, pct, color = '#2547FF', delay = 0 }) {
   const root = useContext(CvScrollRootCtx);
@@ -449,6 +580,7 @@ function ScaleChart({ ML }) {
 function ExperienceSection() {
   const ML = { margin: '0 0 14px', fontSize: '0.56rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.26)' };
   const scrollRootRef = useRef(null);
+  const [cvIdx, setCvIdx] = useState(0);
 
   const entries = [
     {
@@ -498,6 +630,23 @@ function ExperienceSection() {
     },
   ];
 
+  useEffect(() => {
+    const el = scrollRootRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const cardW = el.scrollWidth / entries.length;
+      setCvIdx(Math.min(Math.round(el.scrollLeft / cardW), entries.length - 1));
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [entries.length]);
+
+  const scrollToCv = (idx) => {
+    const el = scrollRootRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.scrollWidth / entries.length, behavior: 'smooth' });
+  };
+
   return (
     <section id="cv" aria-label="Experience" style={{ background: '#05050a', padding: 'clamp(72px,9vw,120px) clamp(24px,6vw,80px)' }}>
       <style>{`
@@ -546,11 +695,16 @@ function ExperienceSection() {
           <div className="cv-row">
             {/* ── Left: index + year + icon ── */}
             <div style={{ paddingTop: 4 }}>
-              <motion.span initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
+              <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
                 viewport={{ once: true }} transition={{ duration: 0.4, delay: 0.04 }}
-                style={{ display: 'block', fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2rem,2.8vw,3rem)', fontWeight: 900, color: 'rgba(255,255,255,0.05)', lineHeight: 1, letterSpacing: '-0.05em', marginBottom: 16, userSelect: 'none' }}>
-                0{i + 1}
-              </motion.span>
+                style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16, userSelect: 'none' }}>
+                <span style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2rem,2.8vw,3rem)', fontWeight: 900, color: 'rgba(255,255,255,0.75)', lineHeight: 1, letterSpacing: '-0.05em' }}>
+                  0{i + 1}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.06em' }}>
+                  /{String(entries.length).padStart(2,'0')} &rsaquo;
+                </span>
+              </motion.div>
               <motion.span initial={{ opacity: 0, x: -8 }} whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.07 }}
                 style={{ display: 'inline-block', fontSize: '0.57rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: item.accent, background: `${item.accent}16`, border: `1px solid ${item.accent}33`, borderRadius: 999, padding: '4px 11px', marginBottom: 14 }}>
@@ -698,6 +852,8 @@ export default function HomePage() {
   const [pastHero, setPastHero] = useState(false);
 
   const [activeSvc, setActiveSvc] = useState(0);
+  const [projIdx,   setProjIdx]   = useState(0);
+  const workGridRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const navY = useMotionValue(-100);
@@ -709,14 +865,25 @@ export default function HomePage() {
   const [aboutRef,   aboutVis]   = useVisible(0.08, 0.04);
   const [svcRef,     svcVis]     = useVisible(0.08, 0.04);
 
-  /* Auto-cycle services while section is visible */
+  /* Auto-cycle services every 3s */
   useEffect(() => {
-    if (!svcVis) return;
     const id = setInterval(() => {
       setActiveSvc(prev => (prev + 1) % SERVICES.length);
     }, 3000);
     return () => clearInterval(id);
-  }, [svcVis]);
+  }, []);
+
+  /* Project scroll tracker */
+  useEffect(() => {
+    const grid = workGridRef.current;
+    if (!grid) return;
+    const onScroll = () => {
+      const cardW = grid.scrollWidth / projects.length;
+      setProjIdx(Math.min(Math.round(grid.scrollLeft / cardW), projects.length - 1));
+    };
+    grid.addEventListener('scroll', onScroll, { passive: true });
+    return () => grid.removeEventListener('scroll', onScroll);
+  }, []);
   const [narrsRef,   narrsVis]   = useVisible(0.1,  0.04);
   const [visionRef,  visionVis]  = useVisible(0.08, 0.04);
   const [workHdrRef, workHdrVis] = useVisible(0.2,  0.05);
@@ -862,7 +1029,7 @@ export default function HomePage() {
         {/* ── 2. About ── */}
         <section id="about" aria-label="About Mohammed Raees" style={{ background: '#fff', overflow: 'hidden', padding: 'clamp(56px,8vw,104px) clamp(24px,6vw,80px)' }}>
           <style>{`
-            .about-v2-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: clamp(40px,6vw,88px); align-items: start; }
+            .about-v2-grid { display: grid; grid-template-columns: 0.55fr 1.45fr; gap: clamp(40px,6vw,88px); align-items: start; }
             @media (max-width: 820px) { .about-v2-grid { grid-template-columns: 1fr; } }
           `}</style>
 
@@ -876,101 +1043,30 @@ export default function HomePage() {
             <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#0B0B0C' }}>About</span>
           </motion.div>
 
-          {/* ── Two-column grid ── */}
           <div className="about-v2-grid">
 
-            {/* LEFT — portrait with decorations */}
+            {/* LEFT — portrait */}
             <div style={{ position: 'relative' }}>
-              {/* Inner image block */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', aspectRatio: '3/4', background: '#0B0B0C' }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/mohammed%20raees%20img.png" alt="Mohammed Raees"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'grayscale(10%) contrast(1.06) brightness(0.95)' }} />
-
-                {/* Subtle scan-line texture on top half */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '45%', backgroundImage: 'repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(255,255,255,0.018) 3px,rgba(255,255,255,0.018) 4px)', pointerEvents: 'none' }} />
-
-                {/* Bottom gradient for legibility */}
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.58) 0%, transparent 48%)', pointerEvents: 'none' }} />
-
-                {/* Corner brackets — TL */}
-                <div style={{ position: 'absolute', top: 16, left: 16, width: 30, height: 30, borderTop: '2px solid rgba(255,255,255,0.7)', borderLeft: '2px solid rgba(255,255,255,0.7)', pointerEvents: 'none' }} />
-                {/* TR */}
-                <div style={{ position: 'absolute', top: 16, right: 16, width: 30, height: 30, borderTop: '2px solid rgba(255,255,255,0.7)', borderRight: '2px solid rgba(255,255,255,0.7)', pointerEvents: 'none' }} />
-                {/* BL — above caption */}
-                <div style={{ position: 'absolute', bottom: 68, left: 16, width: 30, height: 30, borderBottom: '2px solid rgba(255,255,255,0.5)', borderLeft: '2px solid rgba(255,255,255,0.5)', pointerEvents: 'none' }} />
-                {/* BR */}
-                <div style={{ position: 'absolute', bottom: 68, right: 16, width: 30, height: 30, borderBottom: '2px solid rgba(255,255,255,0.5)', borderRight: '2px solid rgba(255,255,255,0.5)', pointerEvents: 'none' }} />
-
-                {/* Diagonal accent line — top-right */}
-                <svg style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, pointerEvents: 'none' }} viewBox="0 0 80 80" fill="none">
-                  <line x1="80" y1="0" x2="0" y2="80" stroke="rgba(37,71,255,0.35)" strokeWidth="1" />
-                  <line x1="80" y1="20" x2="20" y2="80" stroke="rgba(37,71,255,0.18)" strokeWidth="1" />
-                </svg>
-
-                {/* Caption */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 20px' }}>
-                  <p style={{ margin: 0, fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>Kerala, India</p>
-                  <p style={{ margin: '3px 0 0', fontSize: '0.85rem', fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Founder · Developer · Operator</p>
-                </div>
-              </motion.div>
-
-              {/* Floating — available badge (outside overflow:hidden) */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                style={{ position: 'absolute', top: 22, right: -16, background: '#fff', borderRadius: 999, padding: '8px 16px', boxShadow: '0 6px 24px rgba(0,0,0,0.13)', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid rgba(0,0,0,0.06)', zIndex: 2 }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 3px rgba(34,197,94,0.22)', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0B0B0C', whiteSpace: 'nowrap' }}>Available for projects</span>
-              </motion.div>
-
-              {/* Floating — year badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                style={{ position: 'absolute', bottom: -18, left: -18, background: '#0B0B0C', borderRadius: 10, padding: '14px 18px', boxShadow: '0 10px 28px rgba(0,0,0,0.22)', zIndex: 2 }}
-              >
-                <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>3+</p>
-                <p style={{ margin: '3px 0 0', fontSize: '0.5rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Years building</p>
-              </motion.div>
+              <div style={{ boxShadow: '0 48px 80px -8px rgba(0,0,0,0.55)', borderRadius: 24, overflow: 'hidden', width: '100%' }}>
+                <DecayCard
+                  width="100%"
+                  height={480}
+                  image="/mohammed%20raees%20img.png"
+                />
+              </div>
             </div>
 
             {/* RIGHT — text */}
             <div style={{ paddingTop: 'clamp(32px,3vw,48px)' }}>
-
-              {/* Scramble role line */}
               <div style={{ overflow: 'hidden', marginBottom: 22 }}>
-                <motion.div
-                  initial={{ y: '115%' }}
-                  whileInView={{ y: 0 }}
-                  viewport={{ once: true, amount: 0.8 }}
-                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <ScrambleText
-                    text="FULL STACK DEVELOPER · FOUNDER · COO"
-                    delay={300}
-                    style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.14em', color: '#2547FF', display: 'block' }}
-                  />
+                <motion.div initial={{ y: '115%' }} whileInView={{ y: 0 }} viewport={{ once: true, amount: 0.8 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}>
+                  <ScrambleText text="FULL STACK DEVELOPER · FOUNDER · COO" delay={300} style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.14em', color: '#2547FF', display: 'block' }} />
                 </motion.div>
               </div>
 
-              {/* Heading with animated underline on "founder" */}
               <motion.h3
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                 style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.7rem,3vw,2.8rem)', fontWeight: 900, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.1, margin: '0 0 24px' }}
               >
                 From software builder to{' '}
@@ -981,49 +1077,23 @@ export default function HomePage() {
                 and operator.
               </motion.h3>
 
-              {/* Bio 1 */}
-              <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, delay: 0.18 }}
-                style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 16px' }}
-              >
+              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.18 }}
+                style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 16px' }}>
                 I&rsquo;m a fullstack developer and BCA graduate who builds{' '}
-                <span style={{ position: 'relative', display: 'inline' }}>
-                  SaaS products
-                  <WavyUnderline color="#2547FF" delay={0.5} wavy={false} />
-                </span>
+                <span style={{ position: 'relative', display: 'inline' }}>SaaS products<WavyUnderline color="#2547FF" delay={0.5} wavy={false} /></span>
                 , web apps, and immersive digital experiences. As Founder &amp; COO of{' '}
-                <strong style={{ color: '#0B0B0C', fontWeight: 700 }}>Narrs Technologies</strong>,
-                I connect engineering decisions to business outcomes.
+                <strong style={{ color: '#0B0B0C', fontWeight: 700 }}>Narrs Technologies</strong>, I connect engineering decisions to business outcomes.
               </motion.p>
 
-              {/* Bio 2 */}
-              <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.7, delay: 0.26 }}
-                style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 32px' }}
-              >
-                My work started with writing code and evolved into a broader mission: helping
-                businesses use technology with more{' '}
-                <span style={{ position: 'relative', display: 'inline' }}>
-                  clarity, speed, and intelligence
-                  <WavyUnderline color="rgba(11,11,12,0.4)" delay={0.4} wavy={false} />
-                </span>
+              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.26 }}
+                style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 32px' }}>
+                My work started with writing code and evolved into a broader mission: helping businesses use technology with more{' '}
+                <span style={{ position: 'relative', display: 'inline' }}>clarity, speed, and intelligence<WavyUnderline color="rgba(11,11,12,0.4)" delay={0.4} wavy={false} /></span>
                 . Three years in — still building things that matter.
               </motion.p>
 
-              {/* Stats grid */}
-              <motion.div
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.32 }}
-                style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 32 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.32 }}
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 32 }}>
                 {[
                   { Icon: Layers,     stat: '12+', label: 'Projects'  },
                   { Icon: Zap,        stat: '3+',  label: 'Years'     },
@@ -1038,32 +1108,19 @@ export default function HomePage() {
                 ))}
               </motion.div>
 
-              {/* Pull quote — border draws in */}
-              <motion.div
-                initial={{ opacity: 0, x: -16 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.65, delay: 0.4 }}
-                style={{ position: 'relative', paddingLeft: 22 }}
-              >
-                {/* Animated left border */}
-                <motion.div
-                  initial={{ scaleY: 0 }}
-                  whileInView={{ scaleY: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.55, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#2547FF', transformOrigin: 'top', borderRadius: 2 }}
-                />
+              <motion.div initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.65, delay: 0.4 }}
+                style={{ position: 'relative', paddingLeft: 22 }}>
+                <motion.div initial={{ scaleY: 0 }} whileInView={{ scaleY: 1 }} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#2547FF', transformOrigin: 'top', borderRadius: 2 }} />
                 <p style={{ margin: 0, fontSize: '1.02rem', fontStyle: 'italic', color: '#0B0B0C', lineHeight: 1.72, fontFamily: 'var(--font-playfair),Georgia,serif', fontWeight: 500 }}>
-                  &ldquo;The strongest products aren&rsquo;t built for attention. They remove friction,
-                  improve decisions, and create measurable value.&rdquo;
+                  &ldquo;The strongest products aren&rsquo;t built for attention. They remove friction, improve decisions, and create measurable value.&rdquo;
                 </p>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Wave: about white → services white (subtle dip) */}
+        {/* Wave: about white → services */}
         <div style={{ lineHeight: 0, background: '#fff', marginTop: -1 }}>
           <svg viewBox="0 0 1440 28" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 28 }}>
             <path d="M0,14 C480,28 960,0 1440,14 L1440,28 L0,28 Z" fill="#F7F6F2" />
@@ -1072,86 +1129,107 @@ export default function HomePage() {
 
         {/* ── Services ── */}
         <section id="services" aria-label="Services" style={{ padding: 'clamp(52px,7vw,96px) clamp(24px,6vw,80px)', background: '#fff' }}>
-          <motion.div ref={svcRef} style={{ maxWidth: 1300, margin: '0 auto' }} initial="hidden" animate={svcVis ? 'show' : 'hidden'} variants={stagger}>
+          <div ref={svcRef} style={{ maxWidth: 1300, margin: '0 auto' }}>
 
-            <div style={{ overflow: 'hidden', marginBottom: 18, display: 'flex', justifyContent: 'center' }}>
-              <motion.p
-                className="section-kicker"
-                initial={{ y: '120%' }}
-                animate={svcVis ? { y: 0 } : { y: '120%' }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                style={{ margin: 0 }}
+            <motion.p
+              className="section-kicker"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              style={{ margin: '0 0 18px', textAlign: 'center' }}
+            >
+              What I Offer
+            </motion.p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40, textAlign: 'center' }}>
+              <motion.h2
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+                style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.8rem,3.5vw,3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.05, margin: 0 }}
               >
-                What I Offer
+                Premium Services
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                style={{ maxWidth: 480, fontSize: '0.92rem', color: '#6B6A66', lineHeight: 1.65, margin: 0 }}
+              >
+                Comprehensive digital solutions tailored to elevate your business
               </motion.p>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40, textAlign: 'center' }}>
-              <div style={{ overflow: 'hidden' }}>
-                <motion.h2
-                  initial={{ y: '110%' }}
-                  animate={svcVis ? { y: 0 } : { y: '110%' }}
-                  transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.8rem,3.5vw,3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.05, margin: 0 }}
-                >
-                  Premium Services
-                </motion.h2>
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <motion.p
-                  initial={{ y: '110%' }}
-                  animate={svcVis ? { y: 0 } : { y: '110%' }}
-                  transition={{ duration: 0.8, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ maxWidth: 480, fontSize: '0.92rem', color: '#6B6A66', lineHeight: 1.65, margin: 0 }}
-                >
-                  Comprehensive digital solutions tailored to elevate your business
-                </motion.p>
+            {/* Pipeline */}
+            <style>{`
+              @keyframes svcLiquid { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+              @keyframes svcPipeGlow { 0%,100% { opacity:0.2; } 50% { opacity:0.65; } }
+              .svc-icon-node { transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, color 0.3s; }
+            `}</style>
+
+            <div style={{ maxWidth: 960, margin: '0 auto 28px' }}>
+              {/* 3-row S-shaped pipeline — all 12 services */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gridTemplateRows: '120px 120px 120px', position: 'relative' }}>
+
+                <svg viewBox="0 0 960 360" preserveAspectRatio="none"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+
+                  {/* Base pipe — S-curve through all 12 icon centers */}
+                  <path
+                    d="M 120,60 C 200,42 280,78 360,60 C 440,42 520,78 600,60 C 680,42 760,78 840,60 C 930,60 930,180 840,180 C 760,198 680,162 600,180 C 520,198 440,162 360,180 C 280,198 200,162 120,180 C 30,180 30,300 120,300 C 200,282 280,318 360,300 C 440,282 520,318 600,300 C 680,282 760,318 840,300"
+                    stroke="rgba(11,11,12,0.07)" strokeWidth="2" fill="none"
+                    strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+
+                  {/* Glow */}
+                  <path
+                    d="M 120,60 C 200,42 280,78 360,60 C 440,42 520,78 600,60 C 680,42 760,78 840,60 C 930,60 930,180 840,180 C 760,198 680,162 600,180 C 520,198 440,162 360,180 C 280,198 200,162 120,180 C 30,180 30,300 120,300 C 200,282 280,318 360,300 C 440,282 520,318 600,300 C 680,282 760,318 840,300"
+                    stroke="rgba(37,71,255,0.18)" strokeWidth="10" fill="none"
+                    strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                    style={{ animation: 'svcPipeGlow 3s ease-in-out infinite' }} />
+
+                  {/* Liquid flow */}
+                  <path
+                    d="M 120,60 C 200,42 280,78 360,60 C 440,42 520,78 600,60 C 680,42 760,78 840,60 C 930,60 930,180 840,180 C 760,198 680,162 600,180 C 520,198 440,162 360,180 C 280,198 200,162 120,180 C 30,180 30,300 120,300 C 200,282 280,318 360,300 C 440,282 520,318 600,300 C 680,282 760,318 840,300"
+                    stroke="#2547FF" strokeWidth="2.5" fill="none"
+                    strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                    pathLength="1000" strokeDasharray="40 60"
+                    style={{ animation: 'svcLiquid 2s linear infinite' }} />
+                </svg>
+
+                {/* Snake order: row1 L→R [0-3] · row2 R→L [7,6,5,4] · row3 L→R [8-11] */}
+                {[0,1,2,3,7,6,5,4,8,9,10,11].map((svcIdx) => {
+                  const svc = SERVICES[svcIdx];
+                  const isActive = activeSvc === svcIdx;
+                  return (
+                    <div key={svcIdx} onClick={() => setActiveSvc(svcIdx)}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', zIndex: 1 }}>
+                      <div className="svc-icon-node" style={{
+                        width: 54, height: 54, borderRadius: '50%',
+                        background: isActive ? '#0B0B0C' : '#fff',
+                        border: `1.5px solid ${isActive ? '#0B0B0C' : 'rgba(11,11,12,0.13)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: isActive ? '#fff' : '#0B0B0C',
+                        boxShadow: isActive
+                          ? '0 0 0 8px rgba(37,71,255,0.12), 0 0 24px rgba(37,71,255,0.38)'
+                          : '0 2px 10px rgba(0,0,0,0.07)',
+                      }}>
+                        <svc.Icon size={21} strokeWidth={1.6} />
+                      </div>
+                      <span style={{
+                        fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
+                        color: isActive ? '#0B0B0C' : 'rgba(11,11,12,0.3)',
+                        marginTop: 9, textAlign: 'center', lineHeight: 1.3, transition: 'color 0.3s', maxWidth: 90,
+                      }}>
+                        {svc.title}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
-            {/* Cards */}
-            <motion.div variants={stagger} style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }} className="svc-cards-grid">
-              {SERVICES.map((svc, i) => {
-                const isActive = activeSvc === i;
-                return (
-                  <motion.button
-                    key={i}
-                    variants={fadeUp}
-                    onClick={() => setActiveSvc(i)}
-                    aria-expanded={isActive}
-                    style={{
-                      position: 'relative',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      gap: 14, padding: '32px 16px', borderRadius: 16, cursor: 'pointer',
-                      border: isActive ? '1.5px solid #0B0B0C' : '1px solid #e8e7e3',
-                      background: isActive ? '#0B0B0C' : '#ffffff',
-                      color: isActive ? '#fff' : '#4a4947',
-                      boxShadow: isActive ? '0 16px 48px rgba(11,11,12,0.18)' : '0 1px 4px rgba(11,11,12,0.06)',
-                      transform: isActive ? 'translateY(-4px)' : 'translateY(0)',
-                      transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
-                      minHeight: 130, overflow: 'hidden',
-                    }}
-                  >
-                    {/* Top accent line */}
-                    <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 2, background: isActive ? '#fff' : '#0B0B0C', opacity: isActive ? 0.5 : 0.12, borderRadius: 999, transition: 'all 0.25s' }} />
-                    {/* Bottom-left small block */}
-                    <div style={{ position: 'absolute', bottom: 10, left: 12, width: 5, height: 5, background: isActive ? 'rgba(255,255,255,0.3)' : 'rgba(11,11,12,0.12)', transition: 'all 0.25s' }} />
-                    {/* Bottom-right small block */}
-                    <div style={{ position: 'absolute', bottom: 10, right: 12, width: 5, height: 5, background: isActive ? 'rgba(255,255,255,0.3)' : 'rgba(11,11,12,0.12)', transition: 'all 0.25s' }} />
-                    <span style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 44, height: 44, borderRadius: 12,
-                      background: isActive ? 'rgba(255,255,255,0.14)' : '#f4f3f0',
-                      color: isActive ? '#fff' : '#0B0B0C',
-                      transition: 'all 0.25s',
-                    }}>
-                      <svc.Icon size={20} strokeWidth={1.6} />
-                    </span>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.3 }}>{svc.title}</span>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
 
             {/* Detail panel */}
             <AnimatePresence mode="wait">
@@ -1180,7 +1258,7 @@ export default function HomePage() {
                 </div>
               </motion.div>
             </AnimatePresence>
-          </motion.div>
+          </div>
         </section>
 
         {/* Wave: services white → narrs dark */}
@@ -1581,7 +1659,7 @@ export default function HomePage() {
             </p>
             <h2 style={{ fontFamily: 'var(--font-croissant),Georgia,serif', fontSize: 'clamp(2rem,5vw,4rem)', fontWeight: 400, letterSpacing: '-0.03em', color: '#0B0B0C', margin: 0, lineHeight: 1 }}>What I&rsquo;ve shipped.</h2>
           </div>
-          <div className="work-grid">
+          <div className="work-grid" ref={workGridRef}>
             {projects.map((project, i) => (
               <motion.article
                 key={project.name}
@@ -1617,6 +1695,25 @@ export default function HomePage() {
                 </div>
               </motion.article>
             ))}
+          </div>
+
+          {/* Slide counter */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 28 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, border: '1.5px solid rgba(11,11,12,0.14)', borderRadius: 999, overflow: 'hidden', background: '#fff' }}>
+              <button
+                onClick={() => { const g = workGridRef.current; if (g) g.scrollTo({ left: Math.max(0, projIdx - 1) * g.scrollWidth / projects.length, behavior: 'smooth' }); }}
+                style={{ background: 'none', border: 'none', borderRight: '1.5px solid rgba(11,11,12,0.14)', cursor: projIdx === 0 ? 'default' : 'pointer', padding: '10px 20px', fontSize: '1rem', fontWeight: 700, color: projIdx === 0 ? 'rgba(11,11,12,0.2)' : '#0B0B0C', lineHeight: 1, transition: 'color 0.2s' }}
+                aria-label="Previous project"
+              >{'<'}</button>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0B0B0C', letterSpacing: '0.06em', padding: '10px 24px', minWidth: 64, textAlign: 'center' }}>
+                {projIdx + 1}/{projects.length}
+              </span>
+              <button
+                onClick={() => { const g = workGridRef.current; if (g) g.scrollTo({ left: Math.min(projects.length - 1, projIdx + 1) * g.scrollWidth / projects.length, behavior: 'smooth' }); }}
+                style={{ background: 'none', border: 'none', borderLeft: '1.5px solid rgba(11,11,12,0.14)', cursor: projIdx === projects.length - 1 ? 'default' : 'pointer', padding: '10px 20px', fontSize: '1rem', fontWeight: 700, color: projIdx === projects.length - 1 ? 'rgba(11,11,12,0.2)' : '#0B0B0C', lineHeight: 1, transition: 'color 0.2s' }}
+                aria-label="Next project"
+              >{'>'}</button>
+            </div>
           </div>
         </section>
 
