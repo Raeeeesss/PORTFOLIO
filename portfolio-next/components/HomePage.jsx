@@ -446,6 +446,42 @@ function ActivityBars() {
 }
 
 /* ── AboutSkillBar — simple bar without scroll-root context ── */
+/* ─── Line-by-line reveal: opens top→bottom, closes bottom→top ─── */
+function LineByLine({ lines, tag: Tag = 'div', baseDelay = 0, stagger = 0.11, style, className }) {
+  const [inView, setInView] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => setInView(e.isIntersecting),
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <Tag ref={ref} style={style} className={className}>
+      {lines.map((line, i) => (
+        <span key={i} style={{ display: 'block', overflow: 'hidden', lineHeight: 'inherit' }}>
+          <motion.span
+            style={{ display: 'block', lineHeight: 'inherit' }}
+            initial={{ y: '110%' }}
+            animate={{ y: inView ? 0 : '110%' }}
+            transition={{
+              duration: 0.88,
+              delay: inView ? baseDelay + i * stagger : (lines.length - 1 - i) * stagger * 0.55,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          >
+            {line}
+          </motion.span>
+        </span>
+      ))}
+    </Tag>
+  );
+}
+
 function AboutSkillBar({ label, pct, color = '#2547FF', delay = 0 }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -665,13 +701,11 @@ function ExperienceSection() {
           <span style={{ width: 24, height: 1, background: 'rgba(255,255,255,0.28)', display: 'inline-block' }} />
           <span style={{ fontSize: '0.63rem', fontWeight: 800, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.32)' }}>Experience</span>
         </motion.div>
-        <div style={{ overflow: 'hidden', marginBottom: 12 }}>
-          <motion.h2 initial={{ y: '106%' }} whileInView={{ y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-            style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2.4rem,5vw,5rem)', fontWeight: 900, letterSpacing: '-0.04em', color: '#fff', lineHeight: 1, margin: 0 }}>
-            The journey so far.
-          </motion.h2>
-        </div>
+        <LineByLine
+          tag="h2"
+          style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2.4rem,5vw,5rem)', fontWeight: 900, letterSpacing: '-0.04em', color: '#fff', lineHeight: 1.05, margin: '0 0 12px' }}
+          lines={['The journey', 'so far.']}
+        />
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
           viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
           style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
@@ -790,10 +824,6 @@ function ExperienceSection() {
             </div>
           ))}
         </div>
-        <a href="/cv.pdf" download style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 52, padding: '0 28px', borderRadius: 999, background: '#fff', color: '#0B0B0C', fontSize: '0.86rem', fontWeight: 800, textDecoration: 'none', flexShrink: 0 }}>
-          <Download size={14} strokeWidth={2.5} />
-          Download CV
-        </a>
       </motion.div>
     </section>
   );
@@ -1010,7 +1040,6 @@ export default function HomePage() {
             {[['#home','Home'],['#work','Work'],['#about','About'],['#services','Services'],['#narrs','Narrs'],['#contact','Contact']].map(([href, label]) => (
               <a key={href} href={href} className="mobile-nav-link" onClick={() => setMenuOpen(false)}>{label}</a>
             ))}
-            <a href="/cv.pdf" download className="mobile-nav-cv">Download CV</a>
           </nav>
         </div>
       )}
@@ -1064,20 +1093,17 @@ export default function HomePage() {
                 </motion.div>
               </div>
 
-              <motion.h3
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.7rem,3vw,2.8rem)', fontWeight: 900, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.1, margin: '0 0 24px' }}
-              >
-                From software builder to{' '}
-                <span style={{ position: 'relative', display: 'inline-block' }}>
-                  founder
-                  <WavyUnderline color="#2547FF" delay={0.7} wavy />
-                </span>{' '}
-                and operator.
-              </motion.h3>
+              <LineByLine
+                tag="h3"
+                style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.7rem,3vw,2.8rem)', fontWeight: 900, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.15, margin: '0 0 24px' }}
+                baseDelay={0.05}
+                lines={[
+                  'From software builder to',
+                  <><span style={{ position: 'relative', display: 'inline-block' }}>founder<WavyUnderline color="#2547FF" delay={0} wavy /></span>{' '}and operator.</>,
+                ]}
+              />
 
-              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.18 }}
+              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.18 }}
                 style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 16px' }}>
                 I&rsquo;m a fullstack developer and BCA graduate who builds{' '}
                 <span style={{ position: 'relative', display: 'inline' }}>SaaS products<WavyUnderline color="#2547FF" delay={0.5} wavy={false} /></span>
@@ -1085,7 +1111,7 @@ export default function HomePage() {
                 <strong style={{ color: '#0B0B0C', fontWeight: 700 }}>Narrs Technologies</strong>, I connect engineering decisions to business outcomes.
               </motion.p>
 
-              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.26 }}
+              <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.3 }} transition={{ duration: 0.7, delay: 0.26 }}
                 style={{ fontSize: '0.97rem', color: '#6B6A66', lineHeight: 1.84, margin: '0 0 32px' }}>
                 My work started with writing code and evolved into a broader mission: helping businesses use technology with more{' '}
                 <span style={{ position: 'relative', display: 'inline' }}>clarity, speed, and intelligence<WavyUnderline color="rgba(11,11,12,0.4)" delay={0.4} wavy={false} /></span>
@@ -1143,24 +1169,17 @@ export default function HomePage() {
             </motion.p>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 40, textAlign: 'center' }}>
-              <motion.h2
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-                style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.8rem,3.5vw,3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.05, margin: 0 }}
-              >
-                Premium Services
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              <LineByLine
+                tag="h2"
+                style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(1.8rem,3.5vw,3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', color: '#0B0B0C', lineHeight: 1.05 }}
+                lines={['Premium Services']}
+              />
+              <LineByLine
+                tag="p"
                 style={{ maxWidth: 480, fontSize: '0.92rem', color: '#6B6A66', lineHeight: 1.65, margin: 0 }}
-              >
-                Comprehensive digital solutions tailored to elevate your business
-              </motion.p>
+                baseDelay={0.08}
+                lines={['Comprehensive digital solutions tailored to elevate your business']}
+              />
             </div>
 
             {/* Pipeline */}
@@ -1286,9 +1305,11 @@ export default function HomePage() {
                   <span style={{ fontSize: '0.66rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>The Company</span>
                 </motion.div>
 
-                <motion.h2 variants={scaleUp} style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2.2rem,4vw,4.4rem)', fontWeight: 900, lineHeight: 1.0, letterSpacing: '-0.035em', color: '#fff', marginBottom: 28 }}>
-                  Narrs builds the software layer for modern businesses.
-                </motion.h2>
+                <LineByLine
+                  tag="h2"
+                  style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2.2rem,4vw,4.4rem)', fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.035em', color: '#fff', marginBottom: 28 }}
+                  lines={['Narrs builds the software', 'layer for modern businesses.']}
+                />
 
                 <motion.p variants={fadeUp} style={{ fontSize: 'clamp(0.88rem,1vw,1rem)', color: 'rgba(255,255,255,0.45)', lineHeight: 1.85, marginBottom: 32, maxWidth: 480 }}>
                   Narrs is an IT and software company from India. We build SaaS products, web applications, and AI-powered systems that help businesses operate with more speed, clarity, and intelligence.
@@ -1419,9 +1440,11 @@ export default function HomePage() {
                   <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>Vision</span>
                 </motion.div>
 
-                <motion.h2 variants={scaleUp} style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2rem,3.8vw,4rem)', fontWeight: 900, lineHeight: 1.04, letterSpacing: '-0.035em', color: '#fff', marginBottom: 24 }}>
-                  Leading Through Vision &amp; Innovation
-                </motion.h2>
+                <LineByLine
+                  tag="h2"
+                  style={{ fontFamily: 'var(--font-playfair),Georgia,serif', fontSize: 'clamp(2rem,3.8vw,4rem)', fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.035em', color: '#fff', marginBottom: 24 }}
+                  lines={['Leading Through', 'Vision & Innovation']}
+                />
 
                 <motion.p variants={fadeUp} style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.44)', lineHeight: 1.85, marginBottom: 14, maxWidth: 520 }}>
                   Mohammed Raees is the Founder and Chief Operating Officer of NARRS, focused on creating impactful digital solutions that combine strategy, design, and technology.
@@ -1697,8 +1720,8 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Slide counter */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 28 }}>
+          {/* Slide counter — mobile only */}
+          <div className="proj-counter-mobile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 28 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, border: '1.5px solid rgba(11,11,12,0.14)', borderRadius: 999, overflow: 'hidden', background: '#fff' }}>
               <button
                 onClick={() => { const g = workGridRef.current; if (g) g.scrollTo({ left: Math.max(0, projIdx - 1) * g.scrollWidth / projects.length, behavior: 'smooth' }); }}
@@ -1785,7 +1808,7 @@ export default function HomePage() {
               <p className="ft-copy">&copy; 2026 Mohammed Raees</p>
               <div className="ft-legal">
                 <a href="mailto:raeeeesss0@gmail.com" className="ft-legal-link">Contact</a>
-                <a href="/cv.pdf" download className="ft-legal-link">Resume</a>
+
                 <a href="https://narrs.in" target="_blank" rel="noreferrer" className="ft-legal-link">Narrs Technologies</a>
               </div>
             </div>
