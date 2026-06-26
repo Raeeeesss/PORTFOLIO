@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "env": {
+        "REGISTRIES": "@react-bits=https://reactbits.dev/r/{name}.json"
+      }
+    }
+  }
+}
