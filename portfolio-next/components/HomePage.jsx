@@ -753,11 +753,32 @@ export default function HomePage() {
     fmAnimate(navOpacity, 1, { duration: 0.6, ease: 'easeOut' });
   }, []);
 
-  /* Mark once pastHero fires (used to guard mobile hide logic) */
+  /* Mark once pastHero fires */
   useEffect(() => {
     if (pastHero) solidOnce.current = true;
   }, [pastHero]);
 
+  /* Mobile only: hide on scroll-down, show on scroll-up */
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      if (window.innerWidth > 900) return;
+      const y = window.scrollY;
+      if (y < 80) {
+        fmAnimate(navY, 0, { duration: 0.35, ease: [0.22, 1, 0.36, 1] });
+        fmAnimate(navOpacity, 1, { duration: 0.25 });
+      } else if (y > lastY + 6) {
+        fmAnimate(navY, -110, { duration: 0.38, ease: [0.22, 1, 0.36, 1] });
+        fmAnimate(navOpacity, 0, { duration: 0.25 });
+      } else if (y < lastY - 6) {
+        fmAnimate(navY, 0, { duration: 0.38, ease: [0.22, 1, 0.36, 1] });
+        fmAnimate(navOpacity, 1, { duration: 0.25 });
+      }
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <div className="founder-site">
